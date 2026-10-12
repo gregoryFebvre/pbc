@@ -1,34 +1,20 @@
-name: Sync Preview Repository
+run: |
+  git config --global user.name "github-actions"
+  git config --global user.email "github-actions@github.com"
 
-on:
-  push:
-    branches:
-      - preview
+  git clone https://x-access-token:${{ secrets.PREVIEW_TOKEN }}@github.com/<TON_COMPTE>/pbc-preview.git preview-repo
 
-jobs:
-  sync:
-    runs-on: ubuntu-latest
+  rsync -av --delete \
+    --exclude='.git' \
+    --exclude='.github' \
+    --exclude='preview-repo' \
+    ./ preview-repo/
 
-    steps:
-      - name: Checkout source repository
-        uses: actions/checkout@v4
+  cd preview-repo
 
-      - name: Push to preview repository
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+  git add .
 
-          git clone https://x-access-token:${{ secrets.PREVIEW_TOKEN }}@github.com/gregoryFebvre/pbc-preview.git preview-repo
-
-          rsync -av --delete \
-            --exclude='.git' \
-            --exclude='.github' \
-            ./ preview-repo/
-
-          cd preview-repo
-
-          git add .
-
-          git diff --staged --quiet || git commit -m "Update preview from pbc"
-
-          git push origin main
+  if ! git diff --cached --quiet; then
+    git commit -m "Update preview from pbc"
+    git push origin main
+  fi
